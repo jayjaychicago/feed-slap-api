@@ -1,0 +1,297 @@
+openapi: 3.0.3
+info:
+  title: Feed-Slap API
+  description: |
+    A simple mood management API that allows you to feed (make happy) or slap (make sad) entities and check their current mood status.
+    
+    ## How it works
+    - **Feed** an entity to make them happy 😊
+    - **Slap** an entity to make them sad 😢  
+    - **Check status** to see their current mood
+    
+    Each entity is identified by a unique ID and their mood persists in Redis storage.
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: https://github.com/your-username/feed-slap-api
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: https://feed-slap-api.vercel.app
+    description: Production server
+  - url: http://localhost:3001
+    description: Development server
+paths:
+  /{id}/status:
+    get:
+      summary: Get entity mood status
+      description: Retrieve the current mood of an entity. Returns 'unknown' if the entity has never been interacted with.
+      operationId: getEntityStatus
+      tags:
+        - Mood Status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier for the entity
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+            minLength: 1
+            maxLength: 50
+          examples:
+            alice:
+              value: alice
+              description: Get Alice's mood
+            bob:
+              value: bob
+              description: Get Bob's mood
+            user123:
+              value: user123
+              description: Get user123's mood
+      responses:
+        '200':
+          description: Successfully retrieved entity mood
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoodResponse'
+              examples:
+                happy:
+                  summary: Happy entity
+                  value:
+                    id: alice
+                    mood: happy
+                sad:
+                  summary: Sad entity
+                  value:
+                    id: alice
+                    mood: sad
+                unknown:
+                  summary: Unknown entity
+                  value:
+                    id: newuser
+                    mood: unknown
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /{id}/feed:
+    post:
+      summary: Feed entity (make happy)
+      description: Feed the entity, which makes them happy. This action changes their mood to 'happy'.
+      operationId: feedEntity
+      tags:
+        - Mood Actions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier for the entity to feed
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+            minLength: 1
+            maxLength: 50
+          examples:
+            alice:
+              value: alice
+              description: Feed Alice
+            pet:
+              value: pet
+              description: Feed a pet
+      responses:
+        '200':
+          description: Entity successfully fed and is now happy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoodResponse'
+              examples:
+                success:
+                  summary: Successfully fed
+                  value:
+                    id: alice
+                    mood: happy
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /{id}/slap:
+    post:
+      summary: Slap entity (make sad)
+      description: Slap the entity, which makes them sad. This action changes their mood to 'sad'.
+      operationId: slapEntity
+      tags:
+        - Mood Actions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier for the entity to slap
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+            minLength: 1
+            maxLength: 50
+          examples:
+            alice:
+              value: alice
+              description: Slap Alice
+            annoying_user:
+              value: annoying_user
+              description: Slap an annoying user
+      responses:
+        '200':
+          description: Entity successfully slapped and is now sad
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoodResponse'
+              examples:
+                success:
+                  summary: Successfully slapped
+                  value:
+                    id: alice
+                    mood: sad
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  schemas:
+    MoodResponse:
+      type: object
+      required:
+        - id
+        - mood
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the entity
+          example: alice
+        mood:
+          type: string
+          enum: [happy, sad, unknown]
+          description: |
+            Current mood of the entity:
+            - `happy`: Entity has been fed
+            - `sad`: Entity has been slapped  
+            - `unknown`: Entity has never been interacted with
+          example: happy
+      example:
+        id: alice
+        mood: happy
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: Invalid action
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+      example:
+        error: Invalid action
+        status: 400
+    Mood:
+      type: string
+      enum: [happy, sad, unknown]
+      description: |
+        Possible mood states:
+        - `happy`: Positive mood state (result of feeding)
+        - `sad`: Negative mood state (result of slapping)
+        - `unknown`: Initial/default state (no interactions yet)
+  responses:
+    BadRequest:
+      description: Bad request - invalid action or malformed request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_action:
+              summary: Invalid action attempted
+              value:
+                error: Use POST to change mood
+                status: 400
+            invalid_method:
+              summary: Wrong HTTP method used
+              value:
+                error: Invalid action
+                status: 404
+    InternalServerError:
+      description: Internal server error - usually database connection issues
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            redis_error:
+              summary: Redis connection failed
+              value:
+                error: Redis connection failed
+                status: 500
+  examples:
+    AliceHappy:
+      summary: Alice is happy
+      description: Alice has been fed and is in a happy mood
+      value:
+        id: alice
+        mood: happy
+    AliceSad:
+      summary: Alice is sad
+      description: Alice has been slapped and is in a sad mood
+      value:
+        id: alice
+        mood: sad
+    UnknownUser:
+      summary: New user with unknown mood
+      description: A user that has never been interacted with
+      value:
+        id: newuser
+        mood: unknown
+tags:
+  - name: Mood Status
+    description: Operations for checking entity mood status
+  - name: Mood Actions
+    description: Operations for changing entity mood (feed/slap)
+externalDocs:
+  description: Find out more about this API
+  url: https://github.com/your-username/feed-slap-api
+# API Usage Examples
+x-api-examples:
+  basic_workflow:
+    summary: Basic API workflow
+    description: |
+      ```bash
+      # 1. Check initial status (will be 'unknown')
+      curl https://feed-slap-api.vercel.app/alice/status
+      
+      # 2. Feed Alice to make her happy
+      curl -X POST https://feed-slap-api.vercel.app/alice/feed
+      
+      # 3. Check status again (now 'happy')
+      curl https://feed-slap-api.vercel.app/alice/status
+      
+      # 4. Slap Alice to make her sad
+      curl -X POST https://feed-slap-api.vercel.app/alice/slap
+      
+      # 5. Check final status (now 'sad')
+      curl https://feed-slap-api.vercel.app/alice/status
+      ```
+  multiple_entities:
+    summary: Managing multiple entities
+    description: |
+      ```bash
+      # Each entity has independent mood state
+      curl -X POST https://feed-slap-api.vercel.app/alice/feed
+      curl -X POST https://feed-slap-api.vercel.app/bob/slap
+      curl -X POST https://feed-slap-api.vercel.app/charlie/feed
+      
+      # Check all their statuses
+      curl https://feed-slap-api.vercel.app/alice/status    # happy
+      curl https://feed-slap-api.vercel.app/bob/status      # sad  
+      curl https://feed-slap-api.vercel.app/charlie/status  # happy
+      ```
