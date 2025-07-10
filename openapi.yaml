@@ -20,8 +20,6 @@ info:
 servers:
   - url: https://feed-slap-api.vercel.app
     description: Production server
-  - url: http://localhost:3001
-    description: Development server
 paths:
   /{id}/status:
     get:
