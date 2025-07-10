@@ -11,7 +11,10 @@ if (!redis.isOpen) {
   redis.connect();
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string; action: string } }) {
+export async function GET(
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string; action: string }> } // ✅ Promise<>
+) {
   const { id, action } = await params;
   
   if (action !== 'status') return NextResponse.json({ error: 'Use POST to change mood' }, { status: 400 });
@@ -20,12 +23,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const mood = await redis.get(id) as Mood | null;
     return NextResponse.json({ id, mood: mood ?? 'unknown' });
   } catch (error) {
-    console.error('Redis error:', error); // ✅ Now using the error
+    console.error('Redis error:', error);
     return NextResponse.json({ error: 'Redis connection failed' }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string; action: string } }) {
+export async function POST(
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string; action: string }> } // ✅ Promise<>
+) {
   const { id, action } = await params;
   
   const mood = action === 'feed' ? 'happy' : action === 'slap' ? 'sad' : null;
@@ -35,7 +41,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     await redis.set(id, mood);
     return NextResponse.json({ id, mood });
   } catch (error) {
-    console.error('Redis error:', error); // ✅ Now using the error
+    console.error('Redis error:', error);
     return NextResponse.json({ error: 'Redis connection failed' }, { status: 500 });
   }
 }
