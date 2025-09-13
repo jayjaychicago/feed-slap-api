@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Feed-Slap API 7
+  title: Feed-Slap API 8
   description: |
     A simple mood management API that allows you to feed (make happy) or slap (make sad) entities and check their current mood status.
     
